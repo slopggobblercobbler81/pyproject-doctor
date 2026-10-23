@@ -2,8 +2,10 @@
 
 __version__ = "1.0.0"
 
+from .dep_auditor import DependencyAuditor
+from .fixer import PyProjectFixer, fix_pyproject, fix_pyproject_file
 from .inspector import ProjectInspector, inspect_pyproject
-from .models import Diagnostic, DiagnosticSeverity, ProjectInfo, ValidationReport
+from .models import Diagnostic, DiagnosticSeverity, FixResult, ProjectInfo, ValidationReport
 from .templates import generate_pyproject_template, list_backend_templates
 from .validator import PyProjectValidator, validate_pyproject, validate_pyproject_file
 
@@ -13,6 +15,7 @@ __all__ = [
     "DiagnosticSeverity",
     "ProjectInfo",
     "ValidationReport",
+    "FixResult",
     "PyProjectValidator",
     "validate_pyproject",
     "validate_pyproject_file",
@@ -20,4 +23,8 @@ __all__ = [
     "inspect_pyproject",
     "generate_pyproject_template",
     "list_backend_templates",
+    "DependencyAuditor",
+    "PyProjectFixer",
+    "fix_pyproject",
+    "fix_pyproject_file",
 ]

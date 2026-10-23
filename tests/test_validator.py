@@ -182,3 +182,165 @@ def test_validate_own_pyproject():
     assert report.is_valid
     assert len(report.errors) == 0
 
+
+
+def test_description_and_authors_validation():
+    # Missing description and authors generate warnings
+    missing = """
+    [build-system]
+    requires = ["setuptools"]
+    build-backend = "setuptools.build_meta"
+
+    [project]
+    name = "sample"
+    version = "1.0.0"
+    """
+    rep = validate_pyproject(missing)
+    assert any(d.code == "W205_MISSING_DESCRIPTION" for d in rep.warnings)
+    assert any(d.code == "W206_MISSING_AUTHORS" for d in rep.warnings)
+
+    # Invalid authors (not a list of dicts)
+    bad_authors = """
+    [build-system]
+    requires = ["setuptools"]
+    build-backend = "setuptools.build_meta"
+
+    [project]
+    name = "sample"
+    version = "1.0.0"
+    authors = ["John Doe"]
+    """
+    rep2 = validate_pyproject(bad_authors)
+    assert any(d.code == "E208_INVALID_AUTHORS" for d in rep2.errors)
+
+
+def test_license_validation():
+    # Invalid license format (e.g. number or empty dict)
+    bad_license = """
+    [build-system]
+    requires = ["setuptools"]
+    build-backend = "setuptools.build_meta"
+
+    [project]
+    name = "sample"
+    version = "1.0.0"
+    license = { unknown = "key" }
+    """
+    rep = validate_pyproject(bad_license)
+    assert any(d.code == "E210_INVALID_LICENSE" for d in rep.errors)
+
+
+def test_readme_validation(tmp_path):
+    # Non-existent readme file
+    p = tmp_path / "pyproject.toml"
+    p.write_text(
+        """
+        [build-system]
+        requires = ["setuptools"]
+        build-backend = "setuptools.build_meta"
+
+        [project]
+        name = "sample"
+        version = "1.0.0"
+        readme = "NON_EXISTENT_FILE.md"
+        """,
+        encoding="utf-8",
+    )
+    rep = validate_pyproject_file(p)
+    assert any(d.code == "W207_README_FILE_NOT_FOUND" for d in rep.warnings)
+
+
+def test_deprecated_flake8_and_black():
+    toml = """
+    [build-system]
+    requires = ["setuptools"]
+    build-backend = "setuptools.build_meta"
+
+    [project]
+    name = "sample"
+    version = "1.0.0"
+
+    [tool.flake8]
+    max-line-length = 88
+
+    [tool.black]
+    line-length = 88
+
+    [tool.ruff]
+    line-length = 88
+    """
+    rep = validate_pyproject(toml)
+    assert any(d.code == "W402_DEPRECATED_FLAKE8_CONFIG" for d in rep.warnings)
+    assert any(d.code == "W403_OBSOLETE_BLACK_CONFIG" for d in rep.warnings)
+
+
+def test_deprecated_ruff_root_options():
+    toml = """
+    [build-system]
+    requires = ["setuptools"]
+    build-backend = "setuptools.build_meta"
+
+    [project]
+    name = "sample"
+    version = "1.0.0"
+
+    [tool.ruff]
+    select = ["E", "F"]
+    ignore = ["W503"]
+    """
+    rep = validate_pyproject(toml)
+    assert any(d.code == "W404_DEPRECATED_RUFF_CONFIG" for d in rep.warnings)
+
+
+def test_deprecated_setuptools_directives():
+    toml = """
+    [build-system]
+    requires = ["setuptools"]
+    build-backend = "setuptools.build_meta"
+
+    [project]
+    name = "sample"
+    version = "1.0.0"
+
+    [tool.setuptools]
+    setup_requires = ["wheel"]
+    packages = ["find:"]
+    """
+    rep = validate_pyproject(toml)
+    assert any(d.code == "W407_LEGACY_SETUPTOOLS_DIRECTIVE" for d in rep.warnings)
+    assert any(d.code == "W408_LEGACY_SETUPTOOLS_FIND" for d in rep.warnings)
+
+
+def test_poetry_pep621_conflict():
+    toml = """
+    [build-system]
+    requires = ["poetry-core"]
+    build-backend = "poetry.core.masonry.api"
+
+    [project]
+    name = "sample"
+    version = "1.0.0"
+
+    [tool.poetry.dependencies]
+    requests = "^2.0.0"
+    """
+    rep = validate_pyproject(toml)
+    assert any(d.code == "W405_POETRY_PEP621_CONFLICT" for d in rep.warnings)
+
+
+def test_invalid_dependency_syntax_in_validator():
+    toml = """
+    [build-system]
+    requires = ["setuptools"]
+    build-backend = "setuptools.build_meta"
+
+    [project]
+    name = "sample"
+    version = "1.0.0"
+    dependencies = [
+        "broken-pkg=1.0"
+    ]
+    """
+    rep = validate_pyproject(toml)
+    assert not rep.is_valid
+    assert any(d.code == "E305_INVALID_DEPENDENCY_SYNTAX" for d in rep.errors)

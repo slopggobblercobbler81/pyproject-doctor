@@ -40,4 +40,5 @@ jobs:
           pyproject-doctor --version
           pyproject-doctor backends
           pyproject-doctor validate pyproject.toml
+          pyproject-doctor --check pyproject.toml
           pyproject-doctor inspect pyproject.toml

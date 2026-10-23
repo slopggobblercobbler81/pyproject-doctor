@@ -88,3 +88,24 @@ class ProjectInfo:
             "scripts": self.scripts,
             "urls": self.urls,
         }
+
+
+@dataclass
+class FixResult:
+    file_path: str
+    original_content: str
+    fixed_content: str
+    changes: List[str] = field(default_factory=list)
+    is_modified: bool = False
+    success: bool = True
+    error_message: Optional[str] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "file_path": self.file_path,
+            "is_modified": self.is_modified,
+            "changes_count": len(self.changes),
+            "changes": self.changes,
+            "success": self.success,
+            "error_message": self.error_message,
+        }
